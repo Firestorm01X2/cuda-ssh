@@ -1,0 +1,23 @@
+version: '3.8'
+#docker build -t cuda-ssh .
+services:
+  cuda_ssh:
+    image: cuda-ssh  # Имя вашего Docker-образа
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "2222:22"  # Проброс порта 2222 на порт 22 внутри контейнера
+    # runtime: nvidia  # Использование NVIDIA Runtime для GPU
+    restart: unless-stopped  # Перезапуск контейнера в случае сбоя
+    volumes:
+      # Здесь можно указать монтирование томов, если нужно
+      # - ./host_path:/container_path
+      - ./data:/home
+    #environment:
+      # Дополнительные переменные окружения, если нужно
+    tty: true  # Включение псевдотерминала
