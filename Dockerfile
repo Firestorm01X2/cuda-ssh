@@ -15,7 +15,8 @@ RUN apt update && \
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
 
-# Создание пользователей и установка паролей. Сделаем в скрипте запуска
+# Создание пользователей и установка паролей. Сделаем в скрипте запуска, а не тут,  
+# чтобы папки пользователей создались уже после монтированию волюмов
 #RUN useradd -m user1 && echo 'user1:password1' | chpasswd # && adduser user1 sudo
 #RUN useradd -m user2 && echo 'user2:password2' | chpasswd # && adduser user2 sudo
 
@@ -26,27 +27,16 @@ RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/
 # Открытие порта 22
 EXPOSE 22
 
-# Запуск SSH-сервера
-#CMD ["/usr/sbin/sshd", "-D"]
+# Копирование файла с  супер пользователями
+COPY superusers.txt /root/superusers.txt
 
-# Тут специально useradd выполняется в скрипте запуска, чтобы создались папки пользователей
-# уже после монтирования volume
-CMD bash -c "useradd -m user1 && echo 'user1:password1' | chpasswd && \
-             useradd -m user2 && echo 'user2:password2' | chpasswd && \
-             /usr/sbin/sshd -D"
+# Копирование файла с пользователями
+COPY users.txt /root/users.txt
 
-# Сборка и запуск контейнера
-#docker build -t cuda-ssh .
-#docker run --gpus all -d -p 2222:22 cuda-ssh
+# Копирование скрипта для добавления пользователей
+COPY create_users.sh /root/create_users.sh
+RUN chmod +x /root/create_users.sh
 
-#docker run --gpus all -d -p 2222:22 \
-#    -v /path/on/host/user1:/home/user1 \
-#    -v /path/on/host/user2:/home/user2 \
-#    cuda-ssh
-
-# Настройка SSH-клиентов
-# ssh user1@localhost -p 2222
-# ssh user2@localhost -p 2222
-
-#Вход в контейнер
-#docker exec -it <container_id> /bin/bash
+# Запуск скрипта создания пользователей и SSH-сервера
+CMD bash -c "/root/create_users.sh && \
+			/usr/sbin/sshd -D"
