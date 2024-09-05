@@ -8,7 +8,8 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 
 # Установка необходимых пакетов
 RUN apt update && \ 
-	apt install -y openssh-server sudo && \ 
+	apt install -y openssh-server sudo && \
+	apt install -y mpich && \	
 	apt install -y mc
 
 # Создание директории для SSH
