@@ -7,14 +7,16 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 
 
 # Установка необходимых пакетов
-RUN apt-get update && apt-get install -y openssh-server sudo && apt-get install -y mc
+RUN apt update && \ 
+	apt install -y openssh-server sudo && \ 
+	apt install -y mc
 
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
 
 # Создание пользователей и установка паролей
-RUN useradd -m user1 && echo 'user1:password1' | chpasswd && adduser user1 sudo
-RUN useradd -m user2 && echo 'user2:password2' | chpasswd && adduser user2 sudo
+RUN useradd -m user1 && echo 'user1:password1' | chpasswd # && adduser user1 sudo
+RUN useradd -m user2 && echo 'user2:password2' | chpasswd # && adduser user2 sudo
 
 # Разрешение входа root и пользователей через SSH
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config

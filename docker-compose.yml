@@ -16,7 +16,6 @@ services:
     restart: unless-stopped  # Перезапуск контейнера в случае сбоя
     volumes:
       # Здесь можно указать монтирование томов, если нужно
-      # - ./host_path:/container_path
       - ./data:/home
     #environment:
       # Дополнительные переменные окружения, если нужно
