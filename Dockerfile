@@ -14,9 +14,9 @@ RUN apt update && \
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
 
-# Создание пользователей и установка паролей
-RUN useradd -m user1 && echo 'user1:password1' | chpasswd # && adduser user1 sudo
-RUN useradd -m user2 && echo 'user2:password2' | chpasswd # && adduser user2 sudo
+# Создание пользователей и установка паролей. Сделаем в скрипте запуска
+#RUN useradd -m user1 && echo 'user1:password1' | chpasswd # && adduser user1 sudo
+#RUN useradd -m user2 && echo 'user2:password2' | chpasswd # && adduser user2 sudo
 
 # Разрешение входа root и пользователей через SSH
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
@@ -26,7 +26,13 @@ RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/
 EXPOSE 22
 
 # Запуск SSH-сервера
-CMD ["/usr/sbin/sshd", "-D"]
+#CMD ["/usr/sbin/sshd", "-D"]
+
+# Тут специально useradd выполняется в скрипте запуска, чтобы создались папки пользователей
+# уже после монтирования volume
+CMD bash -c "useradd -m user1 && echo 'user1:password1' | chpasswd && \
+             useradd -m user2 && echo 'user2:password2' | chpasswd && \
+             /usr/sbin/sshd -D"
 
 # Сборка и запуск контейнера
 #docker build -t cuda-ssh .
