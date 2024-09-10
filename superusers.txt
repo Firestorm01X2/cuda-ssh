@@ -1,1 +1,3 @@
 superuser:superpassword
+superuser2:superpassword2
+luchern:luchern

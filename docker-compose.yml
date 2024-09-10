@@ -11,7 +11,7 @@ services:
               count: all
               capabilities: [gpu]
     ports:
-      - "2222:22"  # Проброс порта 2222 на порт 22 внутри контейнера
+      - "22:22"  # Проброс порта 2222 на порт 22 внутри контейнера
     # runtime: nvidia  # Использование NVIDIA Runtime для GPU
     restart: unless-stopped  # Перезапуск контейнера в случае сбоя
     volumes:
