@@ -1,3 +1,3 @@
 docker-compose down
-docker-compose build
+docker build -t cuda-ssh .
 docker-compose up -d

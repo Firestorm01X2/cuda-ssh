@@ -7,10 +7,10 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 
 
 # Установка необходимых пакетов
-RUN apt update && \ 
-	apt install -y openssh-server sudo && \
-	apt install -y mpich && \	
-	apt install -y mc
+RUN apt update &&\ 
+    apt install -y openssh-server sudo &&\
+    apt install openmpi-bin openmpi-doc libopenmpi-dev &&\
+    apt install -y mc
 
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
