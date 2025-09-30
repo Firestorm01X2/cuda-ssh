@@ -1,4 +1,9 @@
 # cuda-ssh
+# Запуск сервера под Windows
+restart.bat
+
+# Остановка
+stop.bat
 
 # Сборка образа
 docker build -t cuda-ssh .
