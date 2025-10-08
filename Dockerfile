@@ -10,7 +10,8 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 RUN apt update &&\ 
     apt install -y openssh-server sudo &&\
     apt install -y openmpi-bin libopenmpi-dev &&\
-    apt install -y mc
+    apt install -y mc &&\
+	apt install -y build-essential pkg-config ocl-icd-opencl-dev clinfo
 
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
