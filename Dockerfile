@@ -10,7 +10,13 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 RUN apt update &&\ 
     apt install -y openssh-server sudo &&\
     apt install -y openmpi-bin libopenmpi-dev &&\
-    apt install -y mc
+    apt install -y mc &&\
+    \
+    # OpenCL: общий загрузчик ICD, инструменты и заголовки (+ CPU-реализация POCL дляfallback)
+    apt install -y ocl-icd-libopencl1 ocl-icd-opencl-dev clinfo pocl-opencl-icd &&\
+    \
+    # Инструменты сборки для примеров
+    apt install -y build-essential
 
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
@@ -36,6 +42,13 @@ COPY users.txt /root/users.txt
 # Копирование скрипта для добавления пользователей
 COPY create_users.sh /root/create_users.sh
 RUN chmod +x /root/create_users.sh
+
+# Копирование примеров
+COPY examples /opt/examples
+
+# Гарантируем наличие OpenCL ICD для NVIDIA, если драйвер смонтирован
+RUN mkdir -p /etc/OpenCL/vendors && \
+    bash -lc 'echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd'
 
 # Запуск скрипта создания пользователей и SSH-сервера
 CMD bash -c "/root/create_users.sh && \
