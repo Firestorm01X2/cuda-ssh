@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.0-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
 
 # Установка переменных для cuda для всех типов оболочек (bash, sh и других)
 RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
@@ -7,16 +7,46 @@ RUN echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /etc/profile.d/cuda.sh && \
 
 
 # Установка необходимых пакетов
-RUN apt update &&\ 
-    apt install -y openssh-server sudo &&\
-    apt install -y openmpi-bin libopenmpi-dev &&\
-    apt install -y mc &&\
-    \
-    # OpenCL: общий загрузчик ICD, инструменты и заголовки (+ CPU-реализация POCL дляfallback)
-    apt install -y ocl-icd-libopencl1 ocl-icd-opencl-dev clinfo pocl-opencl-icd &&\
-    \
-    # Инструменты сборки для примеров
-    apt install -y build-essential
+RUN apt update && \
+    apt install -y --no-install-recommends \
+      openssh-server sudo \
+      openmpi-bin libopenmpi-dev \
+      mc \
+      # OpenCL: общий загрузчик ICD, инструменты и заголовки
+      ocl-icd-libopencl1 ocl-icd-opencl-dev clinfo opencl-headers \
+      # Инструменты сборки
+      build-essential cmake git pkg-config ninja-build \
+      python3-dev libpython3-dev \
+      libhwloc-dev zlib1g zlib1g-dev libxml2-dev dialog apt-utils wget && \
+    rm -rf /var/lib/apt/lists/*
+
+# LLVM/Clang для сборки PoCL (совместимо с PoCL 6.0)
+ENV LLVM_VERSION=14
+RUN apt update && \
+    apt install -y --no-install-recommends \
+      libclang-${LLVM_VERSION}-dev clang-${LLVM_VERSION} llvm-${LLVM_VERSION} \
+      libclang-cpp${LLVM_VERSION}-dev libclang-cpp${LLVM_VERSION} llvm-${LLVM_VERSION}-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Сборка и установка PoCL (CUDA backend). Линкуемся со стубами CUDA для сборки в контейнере
+RUN git clone --branch v6.0 https://github.com/pocl/pocl /tmp/pocl && \
+    mkdir -p /tmp/pocl/build && \
+    cd /tmp/pocl/build && \
+    cmake \
+      -DCMAKE_C_FLAGS="-L/usr/local/cuda/lib64/stubs" \
+      -DCMAKE_CXX_FLAGS="-L/usr/local/cuda/lib64/stubs" \
+      -DWITH_LLVM_CONFIG=/usr/bin/llvm-config-${LLVM_VERSION} \
+      -DENABLE_HOST_CPU_DEVICES=OFF \
+      -DENABLE_CUDA=ON .. && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    mkdir -p /etc/OpenCL/vendors && \
+    cp /usr/local/etc/OpenCL/vendors/pocl.icd /etc/OpenCL/vendors/pocl.icd && \
+    rm -rf /tmp/pocl
+
+# По умолчанию использовать CUDA-девайс PoCL
+ENV POCL_DEVICES=cuda
 
 # Создание директории для SSH
 RUN mkdir /var/run/sshd
@@ -46,9 +76,7 @@ RUN chmod +x /root/create_users.sh
 # Копирование примеров
 COPY examples /opt/examples
 
-# Гарантируем наличие OpenCL ICD для NVIDIA, если драйвер смонтирован
-RUN mkdir -p /etc/OpenCL/vendors && \
-    bash -lc 'echo libnvidia-opencl.so.1 > /etc/OpenCL/vendors/nvidia.icd'
+
 
 # Запуск скрипта создания пользователей и SSH-сервера
 CMD bash -c "/root/create_users.sh && \
