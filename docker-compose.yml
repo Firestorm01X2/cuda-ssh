@@ -22,8 +22,11 @@ services:
       # Для OpenCL на NVIDIA достаточно compute+utility; graphics требуется только для графики
     restart: unless-stopped  # Перезапуск контейнера в случае сбоя
     volumes:
-      # Здесь можно указать монтирование томов, если нужно
-      - ./data:/home
+      # Используем именованный том вместо bind mount на Windows, чтобы работали права
+      - home-data:/home
     #environment:
       # Дополнительные переменные окружения, если нужно
     tty: true  # Включение псевдотерминала
+volumes:
+  home-data:
+    name: cuda-ssh_home-data

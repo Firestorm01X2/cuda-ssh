@@ -76,8 +76,6 @@ RUN chmod +x /root/create_users.sh
 # Копирование примеров
 COPY examples /opt/examples
 
-
-
 # Запуск скрипта создания пользователей и SSH-сервера
 CMD bash -c "/root/create_users.sh && \
 			/usr/sbin/sshd -D"
