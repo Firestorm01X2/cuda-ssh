@@ -3,6 +3,8 @@ version: '3.8'
 services:
   cuda_ssh:
     image: cuda-ssh  # Имя вашего Docker-образа
+    # Включить доступ к GPU через NVIDIA Container Toolkit
+    gpus: all
     deploy:
       resources:
         reservations:
@@ -12,11 +14,19 @@ services:
               capabilities: [gpu]
     ports:
       - "22:22"  # Проброс порта 2222 на порт 22 внутри контейнера
-    # runtime: nvidia  # Использование NVIDIA Runtime для GPU
+    # runtime: nvidia  # Использование NVIDIA Runtime для GPU (для старых Docker)
+    environment:
+      # Указать требуемые возможности NVIDIA для CUDA и OpenCL
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Для OpenCL на NVIDIA достаточно compute+utility; graphics требуется только для графики
     restart: unless-stopped  # Перезапуск контейнера в случае сбоя
     volumes:
-      # Здесь можно указать монтирование томов, если нужно
-      - ./data:/home
+      # Используем именованный том вместо bind mount на Windows, чтобы работали права
+      - home-data:/home
     #environment:
       # Дополнительные переменные окружения, если нужно
     tty: true  # Включение псевдотерминала
+volumes:
+  home-data:
+    name: cuda-ssh_home-data
