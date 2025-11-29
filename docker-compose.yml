@@ -1,4 +1,3 @@
-version: '3.8'
 #docker build -t cuda-ssh .
 services:
   cuda_ssh:
@@ -20,13 +19,16 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       # Для OpenCL на NVIDIA достаточно compute+utility; graphics требуется только для графики
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped  # Перезапуск контейнера в случае сбоя
     volumes:
       # Используем именованный том вместо bind mount на Windows, чтобы работали права
       - home-data:/home
+      - ./superusers.txt:/run/secrets/superusers.txt:ro
+      - ./users.txt:/run/secrets/users.txt:ro
     #environment:
       # Дополнительные переменные окружения, если нужно
     tty: true  # Включение псевдотерминала
 volumes:
   home-data:
-    name: cuda-ssh_home-data
