@@ -60,6 +60,13 @@ ssh user1@localhost -p 2222
 ssh user2@localhost -p 2222
 ```
 
+### Add users in a running container (superusers only)
+- Enter the container with a sudo-capable account (one from `superusers.txt`):  
+  `docker exec -it <container_id> bash`
+- Add or update a user and optionally grant sudo:  
+  `sudo /root/create_users.sh add alice 'Passw0rd!' --sudo`
+- The script updates `AllowUsers` and sends a HUP to `sshd`, so SSH access for the new user becomes available immediately.
+
 ### Enter the container
 ```bash
 docker exec -it <container_id> /bin/bash

@@ -57,6 +57,25 @@ create_user_if_not_exists() {
 
 # Управление списком AllowUsers для SSH
 ALLOW_USERS=""
+load_allow_users_from_config() {
+    # Считать текущий AllowUsers из sshd_config, если есть
+    if grep -q '^AllowUsers' /etc/ssh/sshd_config 2>/dev/null; then
+        local existing
+        existing="$(awk '/^AllowUsers/{for(i=2;i<=NF;i++)print $i}' /etc/ssh/sshd_config)"
+        if [ -n "$existing" ]; then
+            # Разбиваем по пробелам и добавляем
+            while IFS= read -r u; do
+                [ -z "$u" ] && continue
+                case " $ALLOW_USERS " in
+                    *" $u "*) ;;
+                    *) ALLOW_USERS="$ALLOW_USERS $u" ;;
+                esac
+            done <<EOF
+$existing
+EOF
+        fi
+    fi
+}
 add_allow_user() {
     local u="$1"
     [ -z "$u" ] && return 0
@@ -77,13 +96,21 @@ apply_allow_users() {
     else
         echo "AllowUsers $ALLOW_USERS" >> /etc/ssh/sshd_config
     fi
-    # Применить изменения без перезапуска контейнера
-    pkill -HUP sshd 2>/dev/null || true
+    # Применить изменения без перезапуска контейнера.
+    # Бьём SIGUP только в мастер-процесс sshd, чтобы не ронять активные сессии.
+    if [ -f /run/sshd.pid ]; then
+        kill -HUP "$(cat /run/sshd.pid)" 2>/dev/null || true
+    else
+        master_pid="$(pidof sshd 2>/dev/null | awk '{print $1}' || true)"
+        [ -n "${master_pid:-}" ] && kill -HUP "$master_pid" 2>/dev/null || true
+    fi
 }
 
 # Режим добавления пользователя в уже запущенном контейнере
 if [ "${1:-}" = "add" ]; then
     require_superuser
+    # Сохранить текущий AllowUsers и расширить новым пользователем
+    load_allow_users_from_config
     shift
     want_sudo="false"
     username=""
