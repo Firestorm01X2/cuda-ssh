@@ -61,9 +61,6 @@ RUN sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config &&
     sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     sed -i 's/^#\?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config && \
     sed -i 's/^#\?X11Forwarding.*/X11Forwarding no/' /etc/ssh/sshd_config && \
-    echo 'LoginGraceTime 30' >> /etc/ssh/sshd_config && \
-    echo 'MaxAuthTries 3' >> /etc/ssh/sshd_config && \
-    echo 'MaxSessions 4' >> /etc/ssh/sshd_config && \
     echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config
 
 # Открытие порта 22
