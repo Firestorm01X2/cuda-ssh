@@ -67,6 +67,16 @@ ssh user2@localhost -p 2222
   `sudo /root/create_users.sh add alice 'Passw0rd!' --sudo`
 - The script updates `AllowUsers` and sends a HUP to `sshd`, so SSH access for the new user becomes available immediately.
 
+### Sync local examples into the container (without recreating the /home volume)
+This project uses a **named volume** for `/home`, so changes to `examples/` copied into the image won't appear in an existing volume automatically.
+
+To solve this, `docker-compose.yml` bind-mounts local `./examples` read-only into the container at `/mnt/examples-src`, and the container runs `/root/sync_examples.sh` on startup to mirror them into `/home/examples`.
+
+Notes:
+- Sync is **mirror-like** (uses `--delete`): files removed locally from `./examples` are removed from `/home/examples`.
+- You can run it manually in a running container:
+  `docker exec -it <container_id_or_name> bash -lc "/root/sync_examples.sh"`
+
 ### Enter the container
 ```bash
 docker exec -it <container_id> /bin/bash

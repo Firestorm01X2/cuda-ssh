@@ -12,6 +12,7 @@ RUN apt update && \
       openssh-server sudo \
       openmpi-bin libopenmpi-dev \
       mc \
+      rsync \
       # OpenCL: общий загрузчик ICD, инструменты и заголовки
       ocl-icd-libopencl1 ocl-icd-opencl-dev clinfo opencl-headers \
       # Инструменты сборки
@@ -76,6 +77,10 @@ RUN mkdir -p /run/secrets && chown root:root /run/secrets && chmod 700 /run/secr
 COPY create_users.sh /root/create_users.sh
 RUN chmod +x /root/create_users.sh
 
+# Копирование скрипта для синхронизации примеров
+COPY sync_examples.sh /root/sync_examples.sh
+RUN chmod +x /root/sync_examples.sh
+
 # Копирование примеров в общий каталог пользователей
 COPY examples /home/examples
 RUN chown -R root:root /home/examples && \
@@ -84,4 +89,5 @@ RUN chown -R root:root /home/examples && \
 
 # Запуск скрипта создания пользователей и SSH-сервера
 CMD bash -c "/root/create_users.sh && \
+			/root/sync_examples.sh && \
 			/usr/sbin/sshd -D"
