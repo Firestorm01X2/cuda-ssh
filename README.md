@@ -1,51 +1,111 @@
-# cuda-ssh
-# Сборка и запуск сервера под Windows (этого сделает всё)
-restart.bat
+## cuda-ssh
+GPU-enabled SSH server in Docker (CUDA/OpenCL). Minimal, production-friendly setup to expose SSH on host port 2222 and persist user home data via a named volume.
 
-# Остановка сервера
-stop.bat
+### Requirements
+- Docker (Windows: Docker Desktop with WSL2)
+- NVIDIA GPU + drivers
+- NVIDIA Container Toolkit
+- SSH client
 
-# Сборка образа
+### Quick start (Windows)
+- Build and start everything:
+
+```powershell
+.\restart.bat
+```
+
+- Stop services:
+
+```powershell
+.\stop.bat
+```
+
+### Build image
+```bash
 docker build -t cuda-ssh .
+```
 
-# Запуск через docker-compose (рекоммендуется)
+### Run with docker-compose (recommended)
+```bash
 docker-compose up -d
+```
 
-# Запуск контейнера
+### Run with Docker CLI
+- Basic:
+
+```bash
 docker run --gpus all -d -p 2222:22 cuda-ssh
+```
 
-# Запуск контейнера с volume
+- With host volumes mapped to user homes:
+
+```bash
 docker run --gpus all -d -p 2222:22 \
-    -v /path/on/host/user1:/home/user1 \
-    -v /path/on/host/user2:/home/user2 \
-    cuda-ssh
+  -v /path/on/host/user1:/home/user1 \
+  -v /path/on/host/user2:/home/user2 \
+  cuda-ssh
+```
 
-# Запуск с OpenCL
-docker run -d --gpus all -p 2222:22 -e NVIDIA_VISIBLE_DEVICES=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility cuda-ssh
+### CUDA/OpenCL runtime flags
+```bash
+docker run -d --gpus all -p 2222:22 \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+  cuda-ssh
+```
 
-# Вход в контейнер
-docker exec -it <container_id> /bin/bash
-
-# Перенос данных тома (volume) на другой компьютер
-# Имя тома закреплено как: cuda-ssh_home-data
-
-# Создать резервную копию (в текущую папку) с сохранением прав:
-docker run --rm -v cuda-ssh_home-data:/from -v ${PWD}:/backup alpine sh -c "cd /from && tar -czf /backup/home-data.tar.gz ."
-
-# Перенести файл home-data.tar.gz на новый компьютер и восстановить:
-docker volume create cuda-ssh_home-data
-docker run --rm -v cuda-ssh_home-data:/to -v ${PWD}:/backup alpine sh -c "cd /to && tar -xzf /backup/home-data.tar.gz"
-
-# Проверить путь тома (опционально):
-docker volume inspect cuda-ssh_home-data --format "{{.Mountpoint}}"
-
-# На Windows (Docker Desktop, WSL2) данные физически лежат в:
-# \\wsl$\\docker-desktop-data\\data\\docker\\volumes\\cuda-ssh_home-data\\_data
-# (на некоторых версиях: \\wsl$\\docker-desktop-data\\version-pack-data\\community\\docker\\volumes\\cuda-ssh_home-data\\_data)
-
-# Настройка SSH-клиентов
+### SSH access
+```bash
 ssh user1@localhost -p 2222
 ssh user2@localhost -p 2222
+```
 
-# Вход в контейнер
+### Add users in a running container (superusers only)
+- Enter the container with a sudo-capable account (one from `superusers.txt`):  
+  `docker exec -it <container_id> bash`
+- Add or update a user and optionally grant sudo:  
+  `sudo /root/create_users.sh add alice 'Passw0rd!' --sudo`
+- The script updates `AllowUsers` and sends a HUP to `sshd`, so SSH access for the new user becomes available immediately.
+
+### Sync local examples into the container (without recreating the /home volume)
+This project uses a **named volume** for `/home`, so changes to `examples/` copied into the image won't appear in an existing volume automatically.
+
+To solve this, `docker-compose.yml` bind-mounts local `./examples` read-only into the container at `/mnt/examples-src`, and the container runs `/root/sync_examples.sh` on startup to mirror them into `/home/examples`.
+
+Notes:
+- Sync is **mirror-like** (uses `--delete`): files removed locally from `./examples` are removed from `/home/examples`.
+- You can run it manually in a running container:
+  `docker exec -it <container_id_or_name> bash -lc "/root/sync_examples.sh"`
+
+### Enter the container
+```bash
 docker exec -it <container_id> /bin/bash
+```
+
+### Persisted data (named volume)
+The named volume is fixed: `cuda-ssh_home-data`.
+
+- Create a backup (in the current directory), preserving permissions:
+
+```bash
+docker run --rm -v cuda-ssh_home-data:/from -v ${PWD}:/backup \
+  alpine sh -c "cd /from && tar -czf /backup/home-data.tar.gz ."
+```
+
+- Restore on another machine:
+
+```bash
+docker volume create cuda-ssh_home-data
+docker run --rm -v cuda-ssh_home-data:/to -v ${PWD}:/backup \
+  alpine sh -c "cd /to && tar -xzf /backup/home-data.tar.gz"
+```
+
+- Inspect the volume mountpoint (optional):
+
+```bash
+docker volume inspect cuda-ssh_home-data --format "{{.Mountpoint}}"
+```
+
+- Windows (Docker Desktop, WSL2) physical paths:
+  - `\\wsl$\docker-desktop-data\data\docker\volumes\cuda-ssh_home-data\_data`
+  - On some versions: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\cuda-ssh_home-data\_data`

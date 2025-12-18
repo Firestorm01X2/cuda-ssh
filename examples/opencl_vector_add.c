@@ -282,7 +282,7 @@ int main(void) {
 
 // Build & run:
 // gcc -O2 -std=c11 -o opencl_vector_add opencl_vector_add.c -lOpenCL
-// OPENCL_PREFER_VENDOR=NVIDIA ./opencl_vector_add
+// ./opencl_vector_add
 // To allow CPU fallback (not recommended when validating GPU path):
 // OPENCL_ALLOW_CPU=1 ./opencl_vector_add
 

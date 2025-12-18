@@ -12,6 +12,7 @@ RUN apt update && \
       openssh-server sudo \
       openmpi-bin libopenmpi-dev \
       mc \
+      rsync \
       # OpenCL: общий загрузчик ICD, инструменты и заголовки
       ocl-icd-libopencl1 ocl-icd-opencl-dev clinfo opencl-headers \
       # Инструменты сборки
@@ -56,26 +57,37 @@ RUN mkdir /var/run/sshd
 #RUN useradd -m user1 && echo 'user1:password1' | chpasswd # && adduser user1 sudo
 #RUN useradd -m user2 && echo 'user2:password2' | chpasswd # && adduser user2 sudo
 
-# Разрешение входа root и пользователей через SSH
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# Настройки безопасности SSH
+RUN sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#\?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/^#\?X11Forwarding.*/X11Forwarding no/' /etc/ssh/sshd_config && \
+    echo 'PermitEmptyPasswords no' >> /etc/ssh/sshd_config
 
 # Открытие порта 22
 EXPOSE 22
 
-# Копирование файла с  супер пользователями
-COPY superusers.txt /root/superusers.txt
+# Файлы с пользователями не копируем в образ (безопасность);
+# монтируются как секреты/файлы во время запуска
 
-# Копирование файла с пользователями
-COPY users.txt /root/users.txt
+# Каталог для секретов: запретить доступ не-root
+RUN mkdir -p /run/secrets && chown root:root /run/secrets && chmod 700 /run/secrets
 
 # Копирование скрипта для добавления пользователей
 COPY create_users.sh /root/create_users.sh
 RUN chmod +x /root/create_users.sh
 
-# Копирование примеров
-COPY examples /opt/examples
+# Копирование скрипта для синхронизации примеров
+COPY sync_examples.sh /root/sync_examples.sh
+RUN chmod +x /root/sync_examples.sh
+
+# Копирование примеров в общий каталог пользователей
+COPY examples /home/examples
+RUN chown -R root:root /home/examples && \
+    find /home/examples -type d -exec chmod 755 {} \; && \
+    find /home/examples -type f -exec chmod 644 {} \;
 
 # Запуск скрипта создания пользователей и SSH-сервера
 CMD bash -c "/root/create_users.sh && \
+			/root/sync_examples.sh && \
 			/usr/sbin/sshd -D"
